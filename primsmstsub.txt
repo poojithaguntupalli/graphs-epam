@@ -1,0 +1,172 @@
+import java.io.*;
+import java.util.*;
+import java.text.*;
+import java.math.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    public static void main(String[] args) {
+        Scanner stdIn = new Scanner(System.in);
+        int V = Integer.parseInt(stdIn.next());
+        int E = Integer.parseInt(stdIn.next());
+        
+        Graph[] adj = new Graph[V];
+        ArrayList<String> mstt = new ArrayList<String>();       
+        int mst = 0;
+        Heap mst_heap = new Heap(V);
+        int[] marked = new int[V];
+        int[] parent = new int[V];
+        
+        for(int i=0;i<V;i++){
+            adj[i] = new Graph(i);
+            marked[i] = 0;
+            parent[i] = -1;
+            mst_heap.heap.add(new HeapNode(i));
+        }
+
+        for(int i=0;i<E;i++){
+            int v1 = Integer.parseInt(stdIn.next())-1;
+            int v2 = Integer.parseInt(stdIn.next())-1;
+            int w = Integer.parseInt(stdIn.next());
+            adj[v1].node_list.add(v2);
+            adj[v2].node_list.add(v1);
+            adj[v1].weight_list.add(w);
+            adj[v2].weight_list.add(w);
+        }
+        
+        int src = Integer.parseInt(stdIn.next())-1;
+        
+        //mst_heap.heap.get(src).key=0;
+        marked[src]=1;
+        mst_heap.pos[src] = V-1;
+        mst_heap.heap.get(src).node = V-1;
+        //mst_heap.heap.get(src).key = mst_heap.heap.get(mst_heap.heap.size()-1).key;
+        mst_heap.pos[V-1] = src;
+        mst_heap.heap.remove(V-1);
+        
+        for(int i=0;i<adj[src].node_list.size();i++){
+                if(marked[adj[src].node_list.get(i)]==0){
+                    mst_heap.decreaseKey(adj[src].node_list.get(i),adj[src].weight_list.get(i),src,parent);
+                }
+            }
+       
+        //mst_heap.heap.get(0).key=0;
+        
+        while(!mst_heap.heap.isEmpty()){
+            String minNode = mst_heap.extractMin(); 
+            String[] temp = minNode.split(" ");
+            int curr_min = Integer.parseInt(temp[0]);
+            //System.out.println("curr_min : "+curr_min);
+            mst+=Integer.parseInt(temp[1]);
+            marked[curr_min] = 1;
+            mstt.add(curr_min+"-"+parent[curr_min]);
+            
+            for(int i=0;i<adj[curr_min].node_list.size();i++){
+                if(marked[adj[curr_min].node_list.get(i)]==0){
+                    
+                    mst_heap.decreaseKey(adj[curr_min].node_list.get(i),adj[curr_min].weight_list.get(i),curr_min,parent);
+                }
+            }
+        }
+        
+        System.out.println(mst);
+        
+    }
+}
+
+class Graph{
+    int vertex;
+    ArrayList<Integer> node_list;
+    ArrayList<Integer> weight_list;
+    
+    public Graph(int vertex){
+        this.vertex = vertex;
+        node_list = new ArrayList<Integer>();
+        weight_list = new ArrayList<Integer>();
+    }
+}
+
+class HeapNode {
+    int node;
+    int key;
+    
+    public HeapNode(int node){
+        this.node=node;
+        this.key = Integer.MAX_VALUE;
+    }
+}
+
+class Heap{
+    int[] pos;
+    ArrayList<HeapNode> heap;
+    
+    public Heap(int v){
+        pos = new int[v];
+        heap = new ArrayList<HeapNode>();
+        
+        for(int i=0;i<v;i++){
+            pos[i]=i;
+        }
+    }
+    
+    public String extractMin(){
+        HeapNode min_node = heap.get(0);
+        String ret = min_node.node+" "+min_node.key;
+        pos[min_node.node] = heap.size()-1;
+        heap.get(0).node = heap.get(heap.size()-1).node;
+        heap.get(0).key = heap.get(heap.size()-1).key;
+        pos[heap.get(0).node] = 0;
+        heap.remove(heap.size()-1);
+        heapify(1);
+        return ret;
+    }
+    
+    public void decreaseKey(int node, int key, int par, int[] parent){
+        int curr_key = heap.get(pos[node]).key;
+        if(curr_key > key){
+            heap.get(pos[node]).key=key;
+            parent[node]=par;
+            int index = pos[node]+1;
+            int par_ind = index/2;
+            while(index>1 && heap.get(par_ind-1).key > heap.get(index-1).key){
+                pos[this.heap.get(index-1).node] = par_ind-1;
+                pos[this.heap.get(par_ind-1).node] = index-1;
+                swap(index,par_ind); 
+                index = par_ind;
+                par_ind = index/2;
+            }
+            //heapify(pos[node]+1);
+        }
+    }
+    
+    private void swap(int i, int j){
+        int a = heap.get(j-1).node;
+        int b = heap.get(j-1).key;
+        heap.get(j-1).key=heap.get(i-1).key;
+        heap.get(j-1).node=heap.get(i-1).node;
+        heap.get(i-1).key=b;
+        heap.get(i-1).node=a;
+    }
+    
+    private void heapify(int min_par){
+        int min = min_par;
+        int left = min_par*2;
+        int right = min_par*2+1;
+        
+        if(left<=this.heap.size() && (this.heap.get(min-1).key > this.heap.get(left-1).key)){
+            min = left;
+        }
+        
+        if(right<=this.heap.size() && (this.heap.get(min-1).key > this.heap.get(right-1).key)){
+            min = right;
+        }
+        
+        if(min!=min_par){
+            pos[this.heap.get(min-1).node] = min_par-1;
+            pos[this.heap.get(min_par-1).node] = min-1;
+            swap(min_par,min);
+            heapify(min);
+        }
+    }
+}
